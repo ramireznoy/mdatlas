@@ -4,6 +4,8 @@ import { createEditor } from './editor.js';
 
 marked.use({ gfm: true, breaks: false });
 
+const MERMAID_URL = 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs';
+
 export function setup() {
   // ── Auth ─────────────────────────────────────────────────────────────────
   const authReady = ref(false);
@@ -65,11 +67,53 @@ export function setup() {
   // With mode="out-in" the leave animation finishes first, so the CM container
   // doesn't exist until this hook — nextTick() inside the watcher is too early.
   function applyHighlighting() {
+    convertMermaidBlocks();
+    renderMermaid();
     if (!window.hljs) return;
     document.querySelectorAll('.markdown-body pre code').forEach(el => {
       delete el.dataset.highlighted;
       window.hljs.highlightElement(el);
     });
+  }
+
+  // ── Mermaid ──────────────────────────────────────────────────────────────
+  // Loaded lazily so documents without diagrams never pay for the bundle.
+  let mermaidPromise = null;
+  function loadMermaid() {
+    mermaidPromise ??= import(MERMAID_URL).then(m => m.default);
+    return mermaidPromise;
+  }
+
+  // Swap ```mermaid code blocks for containers before hljs sees them.
+  // The source is kept in data-source so diagrams can be re-rendered on theme change.
+  function convertMermaidBlocks() {
+    document.querySelectorAll('.markdown-body pre > code.language-mermaid').forEach(code => {
+      const div = document.createElement('div');
+      div.className = 'mermaid';
+      div.dataset.source = code.textContent;
+      code.parentElement.replaceWith(div);
+    });
+  }
+
+  async function renderMermaid() {
+    const nodes = [...document.querySelectorAll('.markdown-body .mermaid[data-source]')];
+    if (!nodes.length) return;
+    try {
+      const mermaid = await loadMermaid();
+      mermaid.initialize({
+        startOnLoad:   false,
+        securityLevel: 'strict',
+        theme:         isDark.value ? 'dark' : 'default',
+      });
+      nodes.forEach(n => {
+        n.removeAttribute('data-processed');
+        n.textContent = n.dataset.source;
+      });
+      await mermaid.run({ nodes, suppressErrors: true });
+    } catch (e) {
+      mermaidPromise = null;
+      showToast('Failed to render diagram: ' + e.message, 'danger');
+    }
   }
 
   function onAfterEnter() {
@@ -83,6 +127,7 @@ export function setup() {
 
   watch(isDark, dark => {
     if (cmEditor) cmEditor.setOption('theme', dark ? 'dracula' : 'default');
+    else renderMermaid();
   });
 
   // ── Data loading ─────────────────────────────────────────────────────────
