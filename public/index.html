@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" href="/favicon.png">
 
   <link rel="stylesheet" href="/vendor/tabler/tabler.min.css">
-  <link rel="stylesheet" href="/vendor/tabler-icons/tabler-icons.min.css">
+  <link rel="stylesheet" href="/vendor/tabler-icons/icons.css">
   <link id="hljs-light" rel="stylesheet" href="/vendor/highlight.js/github.min.css">
   <link id="hljs-dark"  rel="stylesheet" href="/vendor/highlight.js/github-dark.min.css" media="print">
   <link rel="stylesheet" href="/vendor/codemirror/codemirror.min.css">
@@ -21,7 +21,7 @@
   <!-- ════ AUTH GATE ════ -->
   <div v-if="!authReady" class="auth-screen">
     <div class="card auth-card shadow-sm">
-      <i class="ti ti-brand-markdown text-primary mb-3" style="font-size:3rem;"></i>
+      <i class="ti ti-markdown text-primary mx-auto mb-3" style="font-size:3rem;"></i>
       <h2 class="mb-1">MDAtlas</h2>
 
       <!-- invalid / missing token -->
@@ -84,7 +84,7 @@
             <div class="spinner-border spinner-border-sm"></div>
           </div>
           <div v-else-if="tree.length === 0" class="text-center py-5 text-muted small">
-            <i class="ti ti-mood-empty d-block mb-2" style="font-size:2rem;"></i>
+            <i class="ti ti-mood-empty d-block mx-auto mb-2" style="font-size:2rem;"></i>
             No .md files found
           </div>
           <template v-else>
@@ -171,7 +171,7 @@
           <transition name="mode-fade" mode="out-in" @after-enter="onAfterEnter">
 
             <div v-if="!selectedFile" key="empty" class="empty-state text-muted">
-              <i class="ti ti-brand-markdown" style="font-size:4rem; opacity:.3;"></i>
+              <i class="ti ti-markdown" style="font-size:4rem; opacity:.3;"></i>
               <p class="mb-0">Select a file from the sidebar to get started</p>
             </div>
 

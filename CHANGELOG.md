@@ -21,6 +21,7 @@ Version 2.1.0 was tagged but never published to npm; its changes are included he
 ### Changed
 - All frontend libraries are bundled in `public/vendor/` and served locally. The UI no longer contacts any CDN, loads instantly and works offline
 - `npm run vendor` (`scripts/vendor.js`) downloads the pinned library versions, the single place to upgrade them
+- Icons are bundled as SVGs for only the icons the UI uses (10 KB) instead of the full Tabler icon font (about 890 KB)
 - Vue pinned to 3.5.13 (was the floating `vue@3`), loaded through a module shim instead of an inline import map
 - Server errors without a known status return a generic 500 message instead of the raw error
 - Invalid port arguments exit with a clear message
@@ -30,6 +31,8 @@ Version 2.1.0 was tagged but never published to npm; its changes are included he
 - Opening the browser on Windows (`start` was treating the URL as the window title)
 - Path guard uses the platform path separator, so it works on Windows
 - Missing files return 404 instead of a 500 that included the absolute path
+- The logo icon on the login screen and in the empty "select a file" state was blank (`ti-brand-markdown` doesn't exist in Tabler Icons)
+- The refresh button's loading spin animation was never defined
 
 ### Security
 - Rendered markdown is sanitized with DOMPurify; raw HTML in a `.md` file could previously run scripts in the UI

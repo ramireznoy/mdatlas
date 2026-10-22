@@ -93,6 +93,8 @@ npm run vendor    # re-download the bundled frontend libraries
 
 The frontend libraries live in `public/vendor/` and are committed. To upgrade one, change its version in `scripts/vendor.js`, run `npm run vendor`, and commit the result.
 
+Icons come from [Tabler Icons](https://tabler.io/icons) as SVGs. Only the ones listed in `TABLER_ICONS` in `scripts/vendor.js` are bundled, into `public/vendor/tabler-icons/icons.css`. To use a new icon, add its name to that list, run `npm run vendor`, and write `<i class="ti ti-<name>"></i>`. The tests fail if markup uses an icon that isn't bundled.
+
 ## License
 
 MIT

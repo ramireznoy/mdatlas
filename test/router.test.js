@@ -171,8 +171,15 @@ describe('Vendored assets', () => {
   const localRefs = [
     ...[...html.matchAll(/(?:src|href)="(\/[^"]+)"/g)].map(m => m[1]),
     ...[...js.matchAll(/['"`](\/vendor\/[^'"`]+)['"`]/g)].map(m => m[1]),
-    '/vendor/tabler-icons/fonts/tabler-icons.woff2',
   ];
+
+  it('every ti-* icon class used by the UI is defined in icons.css', () => {
+    const ui      = html + js + read('js/components/TreeNode.js');
+    const used    = new Set([...ui.matchAll(/\bti-([a-z0-9-]+)/g)].map(m => m[1]));
+    const defined = new Set([...read('vendor/tabler-icons/icons.css').matchAll(/^\.ti-([a-z0-9-]+) \{/gm)].map(m => m[1]));
+    const missing = [...used].filter(name => !defined.has(name));
+    assert.deepEqual(missing, [], 'add these to TABLER_ICONS in scripts/vendor.js and run npm run vendor');
+  });
 
   for (const url of localRefs) {
     it(`serves ${url}`, async () => {
