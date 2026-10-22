@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0] - 2026-10-22
+
+### Added
+- Create new `.md` files from the UI: a **+** in the sidebar header and on each folder opens a New File dialog
+- The dialog browses folders one level at a time (capped at 100 per level, filtered as you type), so it works in large repos and in folders without any markdown yet
+- Missing folders in the path are created, and the dialog says which ones before you confirm
+- New files open in the editor with a heading taken from the file name
+- Folders in the tree expand to show the selected file
+- `POST /api/file` creates a file (409 if it already exists, never overwrites) and `GET /api/dirs` lists a folder's subfolders
+
+### Changed
+- Header actions redesigned to match the sidebar's icon buttons: an icon Read/Edit switch, and an icon Save button that turns blue with a dot when there are unsaved changes. Save keeps its place in read mode, so the switch doesn't move
+- The light/dark theme toggle moved to the sidebar header, next to New file and Refresh
+
+### Fixed
+- `Ctrl/⌘+I` didn't switch back to read mode while the cursor was in the editor (the shortcut fired twice and cancelled itself out)
+
 ## [3.0.0] - 2026-10-22
 
 Version 2.1.0 was tagged but never published to npm; its changes are included here.

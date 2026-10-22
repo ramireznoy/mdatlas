@@ -174,7 +174,7 @@ describe('Vendored assets', () => {
   ];
 
   it('every ti-* icon class used by the UI is defined in icons.css', () => {
-    const ui      = html + js + read('js/components/TreeNode.js');
+    const ui      = html + js + read('js/components/TreeNode.js') + read('js/components/NewFileDialog.js');
     const used    = new Set([...ui.matchAll(/\bti-([a-z0-9-]+)/g)].map(m => m[1]));
     const defined = new Set([...read('vendor/tabler-icons/icons.css').matchAll(/^\.ti-([a-z0-9-]+) \{/gm)].map(m => m[1]));
     const missing = [...used].filter(name => !defined.has(name));

@@ -110,10 +110,104 @@
 }
 .tree-chevron.open { transform: rotate(90deg); }
 
+/* "New file in this folder" button, shown on hover */
+.tree-add {
+  display: flex;
+  margin-left: auto;
+  padding: .1rem;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  opacity: 0;
+  transition: opacity .1s;
+}
+.tree-item:hover .tree-add,
+.tree-add:focus-visible { opacity: .6; }
+.tree-add:hover { opacity: 1; background: var(--tblr-border-color); }
+.tree-item .tree-add i { font-size: 1rem; }
+.tree-add + .tree-chevron { margin-left: .15rem; }
+
+/* New File dialog */
+.new-file-dialog .modal-body { padding: 1.5rem; }
+.new-file-dialog .form-label { margin-bottom: .5rem; font-size: .9375rem; }
+.new-file-dialog .form-control { padding: .625rem .875rem; font-size: 1rem; }
+
+.new-file-dirs {
+  margin-top: .75rem;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius);
+}
+.new-file-dirs .list-group-item {
+  padding: .55rem .875rem;
+  font-size: .9375rem;
+}
+.new-file-dirs .list-group-item .ti { font-size: 1.15rem; }
+.new-file-dirs .new-file-more { font-size: .875rem; }
+
+.new-file-hints {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  margin-top: 1rem;
+  font-size: .875rem;
+  line-height: 1.45;
+}
+.new-file-hints > div { display: flex; align-items: flex-start; gap: .5rem; }
+.new-file-hints .ti { flex-shrink: 0; font-size: 1.1rem; margin-top: .05rem; }
+.new-file-hints code { font-size: .85rem; padding: .1rem .35rem; word-break: break-all; }
+
+/* ── Header actions ─────────────────────────────────────── */
+/* Read / Edit switch: the active mode is raised and tinted */
+.mode-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 8px;
+  background: var(--tblr-bg-surface-secondary);
+}
+.mode-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tblr-secondary);
+  transition: background .12s, color .12s;
+}
+.mode-switch-btn .ti { font-size: 1.2rem; }
+.mode-switch-btn:hover:not(.active) { color: var(--tblr-body-color); }
+.mode-switch-btn.active {
+  background: var(--tblr-bg-surface);
+  color: var(--tblr-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+}
+[data-bs-theme="dark"] .mode-switch-btn.active { background: rgba(255, 255, 255, .1); box-shadow: none; }
+
+/* Save: dimmed when clean, tinted with an unsaved dot when dirty */
+.save-btn { position: relative; }
+.save-btn:disabled { opacity: .35; }
+.save-btn.dirty { color: var(--tblr-primary); background: var(--tblr-primary-lt); }
+.save-btn.dirty::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tblr-warning);
+}
+
 /* ── Icon sizes ─────────────────────────────────────────── */
 .btn-icon .ti,
-.btn-sm .ti,
-.btn-group .ti { font-size: 1.35rem; }
+.btn-sm .ti { font-size: 1.35rem; }
 .sidebar-inner .ti-folder-root { font-size: 1rem; }
 
 /* ── Mode transition ─────────────────────────────────────── */

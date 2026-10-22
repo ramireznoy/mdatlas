@@ -74,10 +74,10 @@ const LIBS = [
 const TABLER_ICONS = {
   version: '3.0.0',
   names: [
-    'alert-circle', 'chevron-right', 'circle-check', 'device-floppy', 'eye',
-    'folder', 'folder-open', 'folder-root', 'layout-sidebar-left-collapse',
-    'layout-sidebar-left-expand', 'markdown', 'mood-empty', 'moon', 'pencil',
-    'plug-connected-x', 'refresh', 'sun',
+    'alert-circle', 'arrow-up', 'chevron-right', 'circle-check', 'device-floppy',
+    'eye', 'file-plus', 'folder', 'folder-open', 'folder-plus', 'folder-root',
+    'layout-sidebar-left-collapse', 'layout-sidebar-left-expand', 'markdown',
+    'mood-empty', 'moon', 'pencil', 'plug-connected-x', 'refresh', 'sun',
   ],
 };
 

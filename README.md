@@ -51,9 +51,10 @@ mdatlas ~/notes
 
 - **Loopback only.** The server listens on `127.0.0.1`, so it can't be reached from other machines unless you set `MDATLAS_HOST`.
 - **Session token.** Every API request must include a token, either as a URL query parameter (`?token=…`) or as a `Bearer` token in the `Authorization` header. The URL printed on startup includes it, so just open it in your browser. The token is stored in `~/.mdatlas/token` (readable only by you) and reused across restarts. Delete that file to generate a new one.
-- **Markdown files only.** The file API reads and writes only existing `.md` files inside the root. It refuses anything else, including dotfiles, anything under hidden directories such as `.git`, and excluded directories such as `node_modules`. Symlinks are followed and rejected if they lead outside the root. It never creates files.
+- **Markdown files only.** The file API reads, writes and creates only `.md` files inside the root. It refuses anything else, including dotfiles, anything under hidden directories such as `.git`, and excluded directories such as `node_modules`. Symlinks are followed and rejected if they lead outside the root.
+- **Creating never overwrites.** A new file is written only if nothing exists at that path, even if another program creates the same file at the same moment.
 - **Sanitized rendering.** Rendered markdown is passed through [DOMPurify](https://github.com/cure53/DOMPurify), and the page sends a Content Security Policy that blocks inline scripts. A hostile `.md` file in a cloned repo can't run scripts in the UI.
-- **No silent overwrites.** If a file changes on disk while you're editing it (for example, your AI assistant edited it), saving asks before overwriting those changes.
+- **No silent overwrites when saving.** If a file changes on disk while you're editing it (for example, your AI assistant edited it), saving asks before overwriting those changes.
 
 The UI's libraries (Vue, marked, DOMPurify, CodeMirror, highlight.js, Mermaid, Tabler) are bundled with the package and served from your machine. Nothing is loaded from the internet, so it works offline.
 
@@ -69,16 +70,17 @@ The UI's libraries (Vue, marked, DOMPurify, CodeMirror, highlight.js, Mermaid, T
 MDATLAS_EXCLUDE=CONTRIBUTING.md MDATLAS_EXCLUDE_DIRS=node_modules,dist npx mdatlas .
 ```
 
+## Creating files
+
+Click the **+** in the sidebar header, or the **+** that appears when you hover over a folder, and type a path such as `docs/adr/0001-use-postgres`. The `.md` extension is added for you.
+
+The dialog lists the folders inside the one you're typing in, one level at a time, so it stays fast in large monorepos and works with folders that don't contain any markdown yet. Use the arrow keys and Enter, or Tab, to go into a folder. If part of the path doesn't exist, the dialog shows which folders it will create. The new file opens in the editor with a heading taken from its name.
+
 ## Roadmap
 
-`mdatlas` is intentionally scoped to reading and editing existing files. This keeps it safe to run in any project as it won't create, rename, or delete anything you didn't already have.
+`mdatlas` doesn't rename or delete files, so it can't remove anything you already have.
 
-Future versions may expand on this with opt-in capabilities:
-
-- **Create files** add a new `.md` file directly from the UI, at any path within the root
-- **Delete files** remove a file with a confirmation step, for cleanup workflows
-
-These are deliberately left out for now. In a shared repo or alongside an AI assistant that's already writing files, a read-and-edit-only tool is the right default it respects the structure the project already has and doesn't step outside its lane.
+- **Delete files**, with a confirmation step, may be added as an opt-in capability. In a shared repo or alongside an AI assistant that's already writing files, a tool that can't remove anything is the right default.
 
 ## Requirements
 

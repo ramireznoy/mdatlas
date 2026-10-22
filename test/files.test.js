@@ -11,6 +11,7 @@ const root = await mkdtemp(join(tmpdir(), 'mdatlas-files-'));
 process.argv[2] = root;
 
 await import('../src/routes/files.js');
+await import('../src/routes/tree.js');
 const { router }        = await import('../src/router.js');
 const { SESSION_TOKEN } = await import('../src/auth.js');
 
@@ -44,7 +45,8 @@ async function call(opts) {
 }
 
 const get = path        => call({ url: `/api/file?path=${encodeURIComponent(path)}` });
-const put = (path, body) => call({ method: 'PUT', url: `/api/file?path=${encodeURIComponent(path)}`, body });
+const put  = (path, body) => call({ method: 'PUT',  url: `/api/file?path=${encodeURIComponent(path)}`, body });
+const post = (path, body) => call({ method: 'POST', url: `/api/file?path=${encodeURIComponent(path)}`, body });
 
 before(async () => {
   await mkdir(join(root, '.git'));
@@ -127,5 +129,53 @@ describe('PUT /api/file', () => {
   it('overwrites a changed file when mtime is omitted', async () => {
     assert.equal((await put('doc.md', { content: '# Forced' })).status, 200);
     assert.equal(await readFile(join(root, 'doc.md'), 'utf8'), '# Forced');
+  });
+});
+
+describe('POST /api/file', () => {
+  it('creates a file in a new folder and returns 201 with its path', async () => {
+    const { status, data } = await post('guides/setup.md', { content: '# Setup' });
+    assert.equal(status, 201);
+    assert.equal(data.path, join('guides', 'setup.md'));
+    assert.equal(await readFile(join(root, 'guides', 'setup.md'), 'utf8'), '# Setup');
+  });
+
+  it('returns an mtime the editor can save against', async () => {
+    const { data: { mtime } } = await post('saved.md', { content: '' });
+    assert.equal((await put('saved.md', { content: '# Saved', mtime })).status, 200);
+  });
+
+  it('returns 409 for an existing file', async () => {
+    assert.equal((await post('guides/setup.md', { content: 'x' })).status, 409);
+    assert.equal(await readFile(join(root, 'guides', 'setup.md'), 'utf8'), '# Setup');
+  });
+
+  it('defaults to an empty file when content is omitted', async () => {
+    assert.equal((await post('empty.md', {})).status, 201);
+    assert.equal(await readFile(join(root, 'empty.md'), 'utf8'), '');
+  });
+
+  it('returns 400 when content is not a string', async () => {
+    assert.equal((await post('bad.md', { content: 1 })).status, 400);
+  });
+
+  it('refuses non-markdown files', async () => {
+    assert.equal((await post('.git/hooks/pre-commit', { content: 'x' })).status, 403);
+  });
+});
+
+describe('GET /api/dirs', () => {
+  it('lists the subfolders of a folder', async () => {
+    const { status, data } = await call({ url: '/api/dirs?path=' });
+    assert.equal(status, 200);
+    assert.deepEqual(data.dirs, ['guides']);
+  });
+
+  it('filters by prefix', async () => {
+    assert.deepEqual((await call({ url: '/api/dirs?path=&q=x' })).data.dirs, []);
+  });
+
+  it('reports a folder that does not exist yet', async () => {
+    assert.equal((await call({ url: '/api/dirs?path=guides/new' })).data.missing, 'new');
   });
 });

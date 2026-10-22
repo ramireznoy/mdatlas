@@ -1,6 +1,6 @@
 import { readFile, writeFile, stat } from 'fs/promises';
 import { router } from '../router.js';
-import { resolveDocPath } from '../fs.js';
+import { resolveDocPath, createDoc } from '../fs.js';
 
 router.get('/api/file', async (req, res) => {
   const rel = new URL(req.url, 'http://x').searchParams.get('path');
@@ -25,4 +25,12 @@ router.put('/api/file', async (req, res) => {
 
   await writeFile(full, content, 'utf-8');
   res.json({ ok: true, mtime: (await stat(full)).mtimeMs });
+});
+
+router.post('/api/file', async (req, res) => {
+  const rel = new URL(req.url, 'http://x').searchParams.get('path');
+  if (!rel) return res.json({ error: 'path required' }, 400);
+  const { content = '' } = await req.json();
+  if (typeof content !== 'string') return res.json({ error: 'content must be a string' }, 400);
+  res.json({ ok: true, ...await createDoc(rel, content) }, 201);
 });

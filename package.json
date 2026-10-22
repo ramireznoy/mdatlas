@@ -1,6 +1,6 @@
 {
   "name": "mdatlas",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Local markdown browser and editor. Browse and edit .md files via a zero-dependency Node.js server",
   "keywords": ["markdown", "browser", "editor", "viewer", "cli", "local", "mermaid"],
   "license": "MIT",

@@ -33,6 +33,7 @@ export function setup() {
   const scrollPositions = new Map();
   const serverDown      = ref(false);
   const showShortcuts   = ref(false);
+  const newFileDir      = ref(null); // folder the New File dialog opens in; null when closed
 
   const isDirty      = computed(() => fileContent.value !== originalContent.value);
   const renderedHtml = computed(() => {
@@ -59,8 +60,6 @@ export function setup() {
       value:        fileContent.value,
       dark:         isDark.value,
       onChange:     val => { fileContent.value = val; },
-      onSave:       () => saveFile(),
-      onToggleEdit: () => { editMode.value = !editMode.value; },
     });
   }
 
@@ -210,6 +209,18 @@ export function setup() {
     }
   }
 
+  function openNewFile(dir = '') {
+    newFileDir.value = dir;
+  }
+
+  async function onCreated({ path }) {
+    newFileDir.value = null;
+    await loadTree();
+    await openFile({ type: 'file', name: path.split(/[\\/]/).pop(), path });
+    if (selectedFile.value?.path === path) editMode.value = true;
+    showToast(`Created ${path}`);
+  }
+
   function startResize(e) {
     const root   = document.documentElement;
     const startX = e.clientX;
@@ -303,7 +314,7 @@ export function setup() {
   return {
     tree, rootPath, selectedFile, fileContent, editMode,
     isDirty, isDark, sidebarOpen, loading, loadingFile, saving, toast, serverDown,
-    authReady, authError,
+    authReady, authError, newFileDir, openNewFile, onCreated,
     renderedHtml, editorContainer, loadTree, openFile, saveFile, toggleTheme, onAfterEnter, startResize, showShortcuts,
   };
 }

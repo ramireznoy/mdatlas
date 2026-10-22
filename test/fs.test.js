@@ -1,9 +1,9 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, writeFile, rm, symlink, realpath } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rm, symlink, realpath, stat, readdir } from 'node:fs/promises';
 import { join, basename } from 'node:path';
 import { tmpdir } from 'node:os';
-import { buildTree, guardPath, resolveDocPath } from '../src/fs.js';
+import { buildTree, guardPath, resolveDocPath, listDirs, createDoc } from '../src/fs.js';
 
 let root, outside;
 
@@ -156,4 +156,73 @@ describe('buildTree', () => {
   it('returns an empty array for a non-existent directory', async () => {
     assert.deepEqual(await buildTree('/no/such/path', '/no/such/path'), []);
   });
+});
+
+describe('listDirs', () => {
+  it('lists direct subfolders, sorted, without hidden, excluded or symlinked ones', async () => {
+    assert.deepEqual(await listDirs('', '', root), { dirs: ['docs', 'empty-dir'], truncated: false, missing: '' });
+  });
+
+  it('filters by a case-insensitive prefix', async () => {
+    assert.deepEqual((await listDirs('', 'D', root)).dirs, ['docs']);
+  });
+
+  it('caps the list and flags it as truncated', async () => {
+    assert.deepEqual(await listDirs('', '', root, 1), { dirs: ['docs'], truncated: true, missing: '' });
+  });
+
+  it('reports the part of the path that does not exist yet', async () => {
+    assert.deepEqual(await listDirs('docs/adr/2026', '', root), { dirs: [], truncated: false, missing: 'adr/2026' });
+  });
+
+  it('rejects hidden folders', () => assert.rejects(listDirs('.git', '', root), { status: 403 }));
+
+  it('rejects ../ traversal', () => assert.rejects(listDirs('..', '', root), { status: 403 }));
+
+  it('rejects a symlinked folder that points outside root', () =>
+    assert.rejects(listDirs('escape-dir', '', root), { status: 403, message: 'Path outside root' }));
+
+  it('rejects a path through a file', () => assert.rejects(listDirs('intro.md', '', root), { status: 400 }));
+});
+
+describe('createDoc', () => {
+  const rejects = (rel, status, message) =>
+    assert.rejects(createDoc(rel, 'x', root), { status, ...(message && { message }) });
+
+  it('creates a file and returns its tree path and mtime', async () => {
+    const { path, mtime } = await createDoc('docs/new.md', '# New', root);
+    assert.equal(path, join('docs', 'new.md'));
+    assert.equal(await readFile(join(root, 'docs', 'new.md'), 'utf8'), '# New');
+    assert.equal(mtime, (await stat(join(root, 'docs', 'new.md'))).mtimeMs);
+  });
+
+  it('creates missing folders', async () => {
+    await createDoc('docs/adr/2026/0001-decision.md', '', root);
+    assert.ok((await stat(join(root, 'docs', 'adr', '2026', '0001-decision.md'))).isFile());
+  });
+
+  it('returns 409 and leaves an existing file untouched', async () => {
+    await rejects('intro.md', 409, 'File already exists');
+    assert.equal(await readFile(join(root, 'intro.md'), 'utf8'), '# Intro');
+  });
+
+  it('rejects non-markdown files', () => rejects('new.txt', 403, 'Only .md files are accessible'));
+
+  it('rejects files inside hidden folders', () => rejects('.git/new.md', 403));
+
+  it('rejects files inside excluded folders', () => rejects('node_modules/new.md', 403));
+
+  it('rejects names hidden by MDATLAS_EXCLUDE', () => rejects('docs/README.md', 403));
+
+  for (const rel of ['what?.md', 'a:b.md', 'con.md', 'docs/trailing./x.md', 'tab\there.md'])
+    it(`rejects the invalid name ${JSON.stringify(rel)}`, () => rejects(rel, 400));
+
+  it('rejects ../ traversal', () => rejects('../new.md', 403, 'Path outside root'));
+
+  it('rejects a symlinked folder that points outside root, without writing', async () => {
+    await rejects('escape-dir/new.md', 403, 'Path outside root');
+    assert.deepEqual(await readdir(outside), ['secret.md']);
+  });
+
+  it('rejects a path through a file', () => rejects('intro.md/x.md', 400));
 });

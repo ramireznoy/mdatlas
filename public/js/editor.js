@@ -12,7 +12,7 @@ CodeMirror.defineMode('markdown-enhanced', config =>
   )
 );
 
-export function createEditor(container, { value, dark, onChange, onSave, onToggleEdit }) {
+export function createEditor(container, { value, dark, onChange }) {
   const cm = CodeMirror(container, {
     value,
     mode:           'markdown-enhanced',
@@ -23,12 +23,10 @@ export function createEditor(container, { value, dark, onChange, onSave, onToggl
     indentUnit:     2,
     tabSize:        2,
     viewportMargin: Infinity,
+    // Save (⌘/Ctrl+S) and Read/Edit (⌘/Ctrl+I) are handled by the window-level
+    // shortcut handler in app.js; binding them here too would run them twice.
     extraKeys: {
-      Tab:      cm => cm.replaceSelection('  '),
-      'Cmd-S':  () => onSave?.(),
-      'Ctrl-S': () => onSave?.(),
-      'Cmd-I':  () => onToggleEdit?.(),
-      'Ctrl-I': () => onToggleEdit?.(),
+      Tab: cm => cm.replaceSelection('  '),
     },
   });
   cm.on('change', instance => onChange?.(instance.getValue()));
