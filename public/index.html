@@ -7,17 +7,13 @@
 
   <link rel="icon" type="image/png" href="/favicon.png">
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
-  <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
-  <link id="hljs-dark"  rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="/vendor/tabler/tabler.min.css">
+  <link rel="stylesheet" href="/vendor/tabler-icons/tabler-icons.min.css">
+  <link id="hljs-light" rel="stylesheet" href="/vendor/highlight.js/github.min.css">
+  <link id="hljs-dark"  rel="stylesheet" href="/vendor/highlight.js/github-dark.min.css" media="print">
+  <link rel="stylesheet" href="/vendor/codemirror/codemirror.min.css">
+  <link rel="stylesheet" href="/vendor/codemirror/theme/dracula.min.css">
   <link rel="stylesheet" href="/css/app.css">
-
-  <script type="importmap">
-  { "imports": { "vue": "https://cdn.jsdelivr.net/npm/vue@3/dist/vue.esm-browser.prod.js" } }
-  </script>
 </head>
 <body class="antialiased">
 <div id="app">
@@ -249,11 +245,12 @@
   </template><!-- end v-else auth -->
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/overlay.min.js"></script>
+<script src="/vendor/marked/marked.min.js"></script>
+<script src="/vendor/dompurify/purify.min.js"></script>
+<script src="/vendor/highlight.js/highlight.min.js"></script>
+<script src="/vendor/codemirror/codemirror.min.js"></script>
+<script src="/vendor/codemirror/mode/markdown.min.js"></script>
+<script src="/vendor/codemirror/addon/overlay.min.js"></script>
 <script type="module" src="/js/main.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
 
 // Import routes first so they register themselves on the shared router instance
 import '../src/routes/auth.js';
@@ -103,6 +104,21 @@ describe('Static file serving', () => {
     assert.ok(res.headers['Content-Type']?.startsWith('text/html'));
   });
 
+  it('sends a CSP on the HTML page that forbids inline scripts', async () => {
+    const res = mockRes();
+    await router.handle(mockReq({ url: '/' }), res);
+    const csp = res.headers['Content-Security-Policy'];
+    assert.match(csp, /script-src [^;]*'self'/);
+    assert.doesNotMatch(csp, /script-src [^;]*'unsafe-inline'/);
+  });
+
+  it('sends nosniff and no-referrer headers', async () => {
+    const res = mockRes();
+    await router.handle(mockReq({ url: '/css/app.css' }), res);
+    assert.equal(res.headers['X-Content-Type-Options'], 'nosniff');
+    assert.equal(res.headers['Referrer-Policy'], 'no-referrer');
+  });
+
   it('serves /css/app.css with text/css content-type', async () => {
     const res = mockRes();
     await router.handle(mockReq({ url: '/css/app.css' }), res);
@@ -128,4 +144,42 @@ describe('Static file serving', () => {
     await router.handle(mockReq({ url: '/../server.js' }), res);
     assert.equal(res.statusCode, 404);
   });
+});
+
+describe('Vendored assets', () => {
+  const read = rel => readFileSync(new URL(`../public/${rel}`, import.meta.url), 'utf8');
+  const html = read('index.html');
+  const js   = ['js/vue.js', 'js/app.js'].map(read).join('\n');
+
+  it('index.html loads no scripts or styles from remote hosts', () => {
+    const remote = [...html.matchAll(/(?:src|href)="(https?:[^"]+)"/g)].map(m => m[1]);
+    assert.deepEqual(remote, []);
+  });
+
+  it('frontend modules import nothing from remote hosts', () => {
+    assert.doesNotMatch(js, /['"`]https?:\/\//);
+  });
+
+  it('the CSP allows no remote script, style or font hosts', async () => {
+    const res = mockRes();
+    await router.handle(mockReq({ url: '/' }), res);
+    for (const directive of res.headers['Content-Security-Policy'].split('; '))
+      if (/^(script|style|font)-src/.test(directive))
+        assert.doesNotMatch(directive, /https?:/, directive);
+  });
+
+  const localRefs = [
+    ...[...html.matchAll(/(?:src|href)="(\/[^"]+)"/g)].map(m => m[1]),
+    ...[...js.matchAll(/['"`](\/vendor\/[^'"`]+)['"`]/g)].map(m => m[1]),
+    '/vendor/tabler-icons/fonts/tabler-icons.woff2',
+  ];
+
+  for (const url of localRefs) {
+    it(`serves ${url}`, async () => {
+      const res = mockRes();
+      await router.handle(mockReq({ url }), res);
+      assert.equal(res.statusCode, 200);
+      assert.notEqual(res.headers['Content-Type'], 'application/octet-stream');
+    });
+  }
 });

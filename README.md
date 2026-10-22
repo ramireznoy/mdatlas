@@ -47,9 +47,15 @@ mdatlas ~/notes
 
 ## Security
 
-Each server process generates a random session token. Every request must include it, either as a URL query parameter (`?token=…`) or as a `Bearer` token in the `Authorization` header. The URL printed on startup includes the token, so just open it in your browser.
+`mdatlas` is meant to run on your own machine, against directories you trust it to edit.
 
-The server only serves `.md` files and prevents path traversal, all file access is sandboxed to the root directory you specify.
+- **Loopback only.** The server listens on `127.0.0.1`, so it can't be reached from other machines unless you set `MDATLAS_HOST`.
+- **Session token.** Every API request must include a token, either as a URL query parameter (`?token=…`) or as a `Bearer` token in the `Authorization` header. The URL printed on startup includes it, so just open it in your browser. The token is stored in `~/.mdatlas/token` (readable only by you) and reused across restarts. Delete that file to generate a new one.
+- **Markdown files only.** The file API reads and writes only existing `.md` files inside the root. It refuses anything else, including dotfiles, anything under hidden directories such as `.git`, and excluded directories such as `node_modules`. Symlinks are followed and rejected if they lead outside the root. It never creates files.
+- **Sanitized rendering.** Rendered markdown is passed through [DOMPurify](https://github.com/cure53/DOMPurify), and the page sends a Content Security Policy that blocks inline scripts. A hostile `.md` file in a cloned repo can't run scripts in the UI.
+- **No silent overwrites.** If a file changes on disk while you're editing it (for example, your AI assistant edited it), saving asks before overwriting those changes.
+
+The UI's libraries (Vue, marked, DOMPurify, CodeMirror, highlight.js, Mermaid, Tabler) are bundled with the package and served from your machine. Nothing is loaded from the internet, so it works offline.
 
 ## Configuration
 
@@ -57,6 +63,7 @@ The server only serves `.md` files and prevents path traversal, all file access 
 |---|---|---|
 | `MDATLAS_EXCLUDE` | `README.md,CHANGELOG.md,LICENSE.md,CODE_OF_CONDUCT.md` | Comma-separated filenames to hide from the tree |
 | `MDATLAS_EXCLUDE_DIRS` | `node_modules` | Comma-separated directory names to skip entirely |
+| `MDATLAS_HOST` | `127.0.0.1` | Interface to listen on. `0.0.0.0` exposes the server to your network |
 
 ```bash
 MDATLAS_EXCLUDE=CONTRIBUTING.md MDATLAS_EXCLUDE_DIRS=node_modules,dist npx mdatlas .
@@ -76,6 +83,15 @@ These are deliberately left out for now. In a shared repo or alongside an AI ass
 ## Requirements
 
 Node.js >= 18. No dependencies.
+
+## Development
+
+```bash
+npm test          # run the test suite
+npm run vendor    # re-download the bundled frontend libraries
+```
+
+The frontend libraries live in `public/vendor/` and are committed. To upgrade one, change its version in `scripts/vendor.js`, run `npm run vendor`, and commit the result.
 
 ## License
 

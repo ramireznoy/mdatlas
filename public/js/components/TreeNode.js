@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed } from '../vue.js';
 
 export const TreeNode = {
   name: 'TreeNode',

@@ -1,6 +1,8 @@
-import { readdir } from 'fs/promises';
-import { join, relative, extname, resolve } from 'path';
+import { readdir, realpath } from 'fs/promises';
+import { join, relative, extname, resolve, sep } from 'path';
 import { ROOT, EXCLUDE_NAMES, EXCLUDE_DIRS } from './config.js';
+
+const httpError = (status, message) => Object.assign(new Error(message), { status });
 
 export async function buildTree(dir = ROOT, root = ROOT) {
   let entries;
@@ -33,9 +35,34 @@ export async function buildTree(dir = ROOT, root = ROOT) {
   });
 }
 
+const isInside = (full, root) => full === root || full.startsWith(root + sep);
+
+// Lexical check only: rejects paths that resolve outside root.
 export function guardPath(rel, root = ROOT) {
-  const full = resolve(join(root, rel));
-  if (!full.startsWith(root + '/') && full !== root)
-    throw Object.assign(new Error('Path outside root'), { status: 403 });
+  const full = resolve(root, rel);
+  if (!isInside(full, root)) throw httpError(403, 'Path outside root');
   return full;
+}
+
+// Resolves a path the file API may read or write: an existing .md file inside
+// root, not under a hidden or excluded directory, with symlinks followed so
+// they cannot point outside root.
+export async function resolveDocPath(rel, root = ROOT) {
+  const full = guardPath(rel, root);
+  if (extname(full).toLowerCase() !== '.md')
+    throw httpError(403, 'Only .md files are accessible');
+
+  const segments = relative(root, full).split(sep);
+  if (segments.some(s => s.startsWith('.') || EXCLUDE_DIRS.has(s.toLowerCase())))
+    throw httpError(403, 'Path is hidden or excluded');
+
+  let real;
+  try {
+    real = await realpath(full);
+  } catch (err) {
+    if (err.code === 'ENOENT' || err.code === 'ENOTDIR') throw httpError(404, 'File not found');
+    throw err;
+  }
+  if (!isInside(real, await realpath(root))) throw httpError(403, 'Path outside root');
+  return real;
 }

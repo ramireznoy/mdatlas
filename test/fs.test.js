@@ -1,11 +1,11 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, writeFile, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, writeFile, rm, symlink, realpath } from 'node:fs/promises';
+import { join, basename } from 'node:path';
 import { tmpdir } from 'node:os';
-import { buildTree, guardPath } from '../src/fs.js';
+import { buildTree, guardPath, resolveDocPath } from '../src/fs.js';
 
-let root;
+let root, outside;
 
 before(async () => {
   root = join(tmpdir(), `mdatlas-test-${Date.now()}`);
@@ -20,9 +20,24 @@ before(async () => {
   await writeFile(join(root, '.hidden.md'),      'hidden');
   await writeFile(join(root, 'docs', 'guide.md'), '# Guide');
   await writeFile(join(root, 'docs', 'api.md'),   '# API');
+  await mkdir(join(root, '.git'), { recursive: true });
+  await mkdir(join(root, 'node_modules', 'pkg'), { recursive: true });
+  await writeFile(join(root, '.git', 'notes.md'),               'hidden');
+  await writeFile(join(root, 'node_modules', 'pkg', 'doc.md'),  'excluded');
+
+  // A sibling directory whose name starts with the root's name, plus symlinks
+  outside = root + '-evil';
+  await mkdir(outside, { recursive: true });
+  await writeFile(join(outside, 'secret.md'), 'secret');
+  await symlink(join(outside, 'secret.md'), join(root, 'escape.md'));
+  await symlink(outside, join(root, 'escape-dir'));
+  await symlink(join(root, 'docs', 'guide.md'), join(root, 'alias.md'));
 });
 
-after(() => rm(root, { recursive: true, force: true }));
+after(async () => {
+  await rm(root,    { recursive: true, force: true });
+  await rm(outside, { recursive: true, force: true });
+});
 
 describe('guardPath', () => {
   it('returns the resolved absolute path for a valid relative path', () => {
@@ -45,6 +60,42 @@ describe('guardPath', () => {
       assert.equal(e.status, 403);
     }
   });
+});
+
+describe('resolveDocPath', () => {
+  const rejects = (rel, status, message) =>
+    assert.rejects(resolveDocPath(rel, root), { status, ...(message && { message }) });
+
+  it('resolves an existing .md file to its real path', async () => {
+    assert.equal(await resolveDocPath('docs/guide.md', root), await realpath(join(root, 'docs', 'guide.md')));
+  });
+
+  it('rejects non-markdown files', () => rejects('ignore.txt', 403, 'Only .md files are accessible'));
+
+  it('rejects files with no extension, like .env', () => rejects('.env', 403));
+
+  it('rejects files inside hidden directories', () => rejects('.git/notes.md', 403, 'Path is hidden or excluded'));
+
+  it('rejects hidden markdown files', () => rejects('.hidden.md', 403, 'Path is hidden or excluded'));
+
+  it('rejects files inside excluded directories', () => rejects('node_modules/pkg/doc.md', 403, 'Path is hidden or excluded'));
+
+  it('rejects ../ traversal', () => rejects('../outside.md', 403, 'Path outside root'));
+
+  it('rejects a sibling directory that shares the root name as a prefix', () =>
+    rejects(`../${basename(outside)}/secret.md`, 403, 'Path outside root'));
+
+  it('rejects a symlinked file that points outside root', () => rejects('escape.md', 403, 'Path outside root'));
+
+  it('rejects a file reached through a symlinked directory outside root', () =>
+    rejects('escape-dir/secret.md', 403, 'Path outside root'));
+
+  it('allows a symlink that stays inside root', async () => {
+    assert.equal(await resolveDocPath('alias.md', root), await realpath(join(root, 'docs', 'guide.md')));
+  });
+
+  it('returns 404 for a missing file without leaking its absolute path', () =>
+    rejects('missing.md', 404, 'File not found'));
 });
 
 describe('buildTree', () => {

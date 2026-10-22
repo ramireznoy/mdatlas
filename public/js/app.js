@@ -1,10 +1,10 @@
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from './vue.js';
 import { initAuth, apiFetch, getToken } from './auth.js';
 import { createEditor } from './editor.js';
 
 marked.use({ gfm: true, breaks: false });
 
-const MERMAID_URL = 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs';
+const MERMAID_SRC = '/vendor/mermaid/mermaid.min.js';
 
 export function setup() {
   // ── Auth ─────────────────────────────────────────────────────────────────
@@ -17,6 +17,7 @@ export function setup() {
   const selectedFile    = ref(null);
   const fileContent     = ref('');
   const originalContent = ref('');
+  const fileMtime       = ref(null);
   const editMode        = ref(false);
   const isDark          = ref(false);
   const sidebarOpen     = ref(true);
@@ -37,7 +38,9 @@ export function setup() {
   const renderedHtml = computed(() => {
     if (!fileContent.value) return '';
     try {
-      return marked.parse(fileContent.value)
+      // Markdown can carry raw HTML; sanitize before it reaches v-html.
+      // If DOMPurify failed to load this throws and we show the error instead.
+      return DOMPurify.sanitize(marked.parse(fileContent.value))
         .replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ');
     }
     catch (e) { return `<pre class="text-danger">Parse error: ${e.message}</pre>`; }
@@ -80,7 +83,13 @@ export function setup() {
   // Loaded lazily so documents without diagrams never pay for the bundle.
   let mermaidPromise = null;
   function loadMermaid() {
-    mermaidPromise ??= import(MERMAID_URL).then(m => m.default);
+    mermaidPromise ??= new Promise((resolve, reject) => {
+      const script   = document.createElement('script');
+      script.src     = MERMAID_SRC;
+      script.onload  = () => resolve(window.mermaid);
+      script.onerror = () => reject(new Error(`could not load ${MERMAID_SRC}`));
+      document.head.appendChild(script);
+    });
     return mermaidPromise;
   }
 
@@ -158,6 +167,7 @@ export function setup() {
       if (data.error) throw new Error(data.error);
       fileContent.value     = data.content;
       originalContent.value = data.content;
+      fileMtime.value       = data.mtime;
     } catch (e) {
       showToast('Failed to load file: ' + e.message, 'danger');
     } finally {
@@ -167,18 +177,31 @@ export function setup() {
     }
   }
 
+  function putFile(body) {
+    return apiFetch(`/api/file?path=${encodeURIComponent(selectedFile.value.path)}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+    });
+  }
+
   async function saveFile() {
     if (!selectedFile.value || saving.value) return;
     saving.value = true;
     try {
-      const res  = await apiFetch(`/api/file?path=${encodeURIComponent(selectedFile.value.path)}`, {
-        method:  'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ content: fileContent.value }),
-      });
+      const content = fileContent.value;
+      let res = await putFile({ content, mtime: fileMtime.value });
+      if (res.status === 409) {
+        if (!confirm('This file was changed on disk since you opened it. Overwrite those changes?')) {
+          showToast('Save cancelled, file changed on disk', 'warning');
+          return;
+        }
+        res = await putFile({ content });
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      originalContent.value = fileContent.value;
+      originalContent.value = content;
+      fileMtime.value       = data.mtime;
       showToast('Saved successfully');
     } catch (e) {
       showToast('Save failed: ' + e.message, 'danger');

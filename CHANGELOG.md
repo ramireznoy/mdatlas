@@ -3,12 +3,42 @@
 All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.1.0] - 2026-10-09
+## [3.0.0] - 2026-10-22
+
+Version 2.1.0 was tagged but never published to npm; its changes are included here.
+
+### Breaking changes
+- The server listens on `127.0.0.1` only. To reach it from another machine, set `MDATLAS_HOST=0.0.0.0`
+- The file API serves only existing `.md` files outside hidden and excluded directories. Requests for other files return 403, and saving a file that doesn't exist returns 404 instead of creating it
 
 ### Added
 - Mermaid diagram rendering for ` ```mermaid ` fenced code blocks in read mode
 - Diagrams follow the light/dark theme toggle
-- Mermaid is lazy-loaded from CDN only when a document contains a diagram
+- Mermaid loads only when a document contains a diagram
+- Save conflict detection: if a file changed on disk since it was opened, saving asks before overwriting it
+- `MDATLAS_HOST` environment variable to choose the listen interface
+
+### Changed
+- All frontend libraries are bundled in `public/vendor/` and served locally. The UI no longer contacts any CDN, loads instantly and works offline
+- `npm run vendor` (`scripts/vendor.js`) downloads the pinned library versions, the single place to upgrade them
+- Vue pinned to 3.5.13 (was the floating `vue@3`), loaded through a module shim instead of an inline import map
+- Server errors without a known status return a generic 500 message instead of the raw error
+- Invalid port arguments exit with a clear message
+
+### Fixed
+- Session token now uses `node:crypto`, so the server starts on Node 18 as `engines` declares
+- Opening the browser on Windows (`start` was treating the URL as the window title)
+- Path guard uses the platform path separator, so it works on Windows
+- Missing files return 404 instead of a 500 that included the absolute path
+
+### Security
+- Rendered markdown is sanitized with DOMPurify; raw HTML in a `.md` file could previously run scripts in the UI
+- The page sends a Content Security Policy allowing only same-origin scripts, styles and fonts (no inline scripts), plus `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`
+- File API restricted as described above; it previously allowed reading and writing any file under the root (e.g. `.env`, `.git/hooks/*`)
+- Symlinks are resolved and rejected if they point outside the root
+- Token file is written with `0600` permissions (existing files are tightened on startup)
+- Token comparison is constant-time
+- Request bodies are limited to 10 MB
 
 ## [2.0.0] - 2026-04-29
 

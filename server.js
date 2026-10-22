@@ -8,13 +8,19 @@ import './src/routes/files.js';
 import './src/routes/events.js';
 
 import { router } from './src/router.js';
-import { PORT, ROOT } from './src/config.js';
+import { PORT, HOST, ROOT } from './src/config.js';
 import { SESSION_TOKEN } from './src/auth.js';
 
 function openBrowser(url) {
-  const cmd = process.platform === 'win32' ? 'start' :
+  // On Windows the first quoted argument to `start` is the window title
+  const cmd = process.platform === 'win32' ? 'start ""' :
               process.platform === 'darwin' ? 'open' : 'xdg-open';
   exec(`${cmd} "${url}"`);
+}
+
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+  console.error(`\n  Invalid port: ${process.argv[3]}\n`);
+  process.exit(1);
 }
 
 const server = http.createServer((req, res) => router.handle(req, res));
@@ -27,7 +33,7 @@ server.on('error', err => {
   throw err;
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   const url = `http://localhost:${PORT}/?token=${SESSION_TOKEN}`;
   console.log(`\n  mdatlas running at ${url}`);
   console.log(`  root: ${ROOT}\n`);

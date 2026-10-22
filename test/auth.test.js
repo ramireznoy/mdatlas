@@ -1,5 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { statSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { SESSION_TOKEN, isAuthorized } from '../src/auth.js';
 
 const req = (url, headers = {}) => ({ url, headers });
@@ -32,5 +35,16 @@ describe('isAuthorized', () => {
   it('does not accept a token that is a prefix of the real one', () => {
     const partial = SESSION_TOKEN.slice(0, 8);
     assert.ok(!isAuthorized(req('/api/auth', { authorization: `Bearer ${partial}` })));
+  });
+
+  it('rejects a token longer than the real one', () => {
+    assert.ok(!isAuthorized(req('/api/auth', { authorization: `Bearer ${SESSION_TOKEN}x` })));
+  });
+});
+
+describe('token file', () => {
+  it('is readable by the owner only', { skip: process.platform === 'win32' }, () => {
+    const { mode } = statSync(join(homedir(), '.mdatlas', 'token'));
+    assert.equal(mode & 0o777, 0o600);
   });
 });
